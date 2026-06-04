@@ -158,27 +158,134 @@ Save your chosen jingle as `intro_jingle.mp3` in the project directory. It auto-
 
 ---
 
-## Scheduling (fully automated, 7am daily)
+## Production deployment (truly automated)
 
-### Linux server (recommended)
+Running `generate_episode.py` locally works for testing, but for a fully
+automated daily podcast you need an always-on server with a cron job.
+Here's the full path from zero to a daily episode publishing itself every morning.
+
+### 1. Provision a server
+
+Any Linux VPS works. AWS EC2 `t3.micro` (~$8/mo) or a $6 DigitalOcean droplet
+are both fine — the workload is light (one API call chain per day).
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-playwright install chromium
-
-# Add cron job — runs at 7am in your timezone
-(crontab -l 2>/dev/null; \
- echo "CRON_TZ=America/New_York"; \
- echo "0 7 * * * cd /path/to/agentic-podcast && python3 generate_episode.py --auto >> logs/podcast.log 2>&1") \
-| crontab -
+# Connect to your server
+ssh -i your_key.pem ec2-user@YOUR_SERVER_IP
 ```
 
-Pass `--auto` flag to skip the interactive confirmation prompts.
+### 2. Install dependencies
 
-### macOS
+```bash
+# Python deps
+pip install anthropic requests python-dotenv pydub
 
-Use [launchd](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html) or a tool like [LaunchControl](https://www.soma-zone.com/LaunchControl/).
+# Playwright + Chromium (for Spotify upload)
+pip install playwright
+playwright install chromium
+playwright install-deps chromium   # installs system libs
+
+# ffmpeg (for audio stitching)
+sudo apt install ffmpeg -y         # Debian/Ubuntu
+# sudo yum install ffmpeg -y       # Amazon Linux / RHEL
+```
+
+### 3. Deploy the code
+
+```bash
+# Upload the project
+scp -r /path/to/agentic-podcast ec2-user@YOUR_SERVER_IP:~/agentic-podcast
+```
+
+### 4. Configure credentials on the server
+
+```bash
+cd ~/agentic-podcast
+cp .env.example .env
+nano .env   # fill in your API keys
+```
+
+### 5. Set up the Spotify session (one-time, from your Mac)
+
+The Spotify upload uses a saved browser session. You generate it once on
+your Mac (where you can see the browser), then copy it to the server.
+
+```bash
+# On your Mac:
+python3 save_spotify_session.py
+# A browser opens — log into Spotify for Creators, press Enter
+
+# Copy the session to the server:
+scp spotify_session.json ec2-user@YOUR_SERVER_IP:~/agentic-podcast/spotify_session.json
+```
+
+The session stays valid for several weeks. When it expires, repeat this step.
+
+### 6. Test a full run on the server
+
+```bash
+# SSH into server, run once with --auto to skip prompts
+cd ~/agentic-podcast
+python3 generate_episode.py --auto
+```
+
+Check the output and verify an episode appears in Spotify for Creators.
+
+### 7. Set up the cron job
+
+```bash
+# Open crontab
+crontab -e
+
+# Add these two lines (7am Eastern Time, daily):
+CRON_TZ=America/New_York
+0 7 * * * cd ~/agentic-podcast && python3 generate_episode.py --auto >> ~/agentic-podcast/logs/podcast.log 2>&1
+```
+
+```bash
+# Create the logs directory
+mkdir -p ~/agentic-podcast/logs
+```
+
+Verify the cron is set:
+```bash
+crontab -l
+```
+
+### 8. Monitor
+
+```bash
+# Check today's log
+tail -50 ~/agentic-podcast/logs/podcast.log
+
+# Check episode counter (should increment each day)
+cat ~/agentic-podcast/episode_count.txt
+```
+
+### Session refresh
+
+When the Spotify session expires (every few weeks), you'll see an error
+in the log like `Session fully expired`. Fix it in 2 minutes:
+
+```bash
+# On your Mac:
+python3 save_spotify_session.py
+
+# Copy fresh session to server:
+scp spotify_session.json ec2-user@YOUR_SERVER_IP:~/agentic-podcast/spotify_session.json
+```
+
+### Cost summary (server + APIs)
+
+| Item | Cost |
+|------|------|
+| EC2 t3.micro (or equivalent VPS) | ~$8/mo |
+| Claude Sonnet (per episode) | ~$0.05 |
+| ElevenLabs Creator plan | $22/mo |
+| Web search (3 searches/episode) | ~$0.03 |
+| **Total** | **~$31/mo** |
+
+That's a fully automated daily podcast for about $1/day.
 
 ---
 
