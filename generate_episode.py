@@ -32,7 +32,7 @@ ELEVEN_VOICE   = os.environ.get("ELEVENLABS_VOICE_ID", "nPczCjzI2devNBz1zQrb")  
 SHOW_ID        = os.environ.get("SPOTIFY_SHOW_ID", "")
 SESSION_FILE   = Path(__file__).parent / "spotify_session.json"
 JINGLE_FILE    = Path(__file__).parent / "intro_jingle.mp3"
-USE_WEB_SEARCH = os.environ.get("USE_WEB_SEARCH", "true").lower() != "false"
+USE_WEB_SEARCH = os.environ.get("USE_WEB_SEARCH", "true").lower() not in ("false", "0", "no")
 
 # ── Choose your data source ─────────────────────────────────────────────────────
 # Point this at any function in data_sources/ that returns a dict.
