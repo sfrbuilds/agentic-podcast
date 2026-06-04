@@ -1,0 +1,12 @@
+.env
+*.mp3
+*.json
+spotify_session.json
+spotify_debug.png
+spotify_step*.png
+__pycache__/
+*.pyc
+.DS_Store
+jingles/
+episode_count.txt
+recent_markets.json
