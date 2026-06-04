@@ -4,7 +4,7 @@
 
 A fully automated pipeline that fetches live data from any source, generates a spoken briefing script using Claude Sonnet (with real-time web search for context), synthesizes audio with ElevenLabs TTS, and publishes to Spotify every morning via headless browser automation.
 
-Built as a general framework. The included example uses prediction market data, but the pattern works for any domain: financial data, sports, weather, news, research, analytics dashboards — anything that produces structured daily data.
+Built as a general framework. The included examples cover weather and prediction markets, but the pattern works for any domain: financial data, sports, research, product analytics, news — anything that produces structured daily data.
 
 ---
 
@@ -32,11 +32,13 @@ Spotify               →  Published episode, every morning
 git clone https://github.com/sfrbuilds/agentic-podcast
 cd agentic-podcast
 pip install -r requirements.txt
-brew install ffmpeg   # macOS — needed for audio stitching
+brew install ffmpeg        # macOS — needed for audio stitching
 
-cp .env.example .env  # fill in your API keys
+cp .env.example .env       # fill in your API keys
 python3 generate_episode.py
 ```
+
+Out of the box this runs the **weather briefing** example — no data API key needed (uses [Open-Meteo](https://open-meteo.com), free and open). To switch to a different data source, change one import line at the top of `generate_episode.py`.
 
 The script pauses twice for human review — once after generating the script, once after generating the audio — before uploading. Safe to run interactively while you're iterating.
 

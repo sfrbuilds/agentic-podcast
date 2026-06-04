@@ -40,11 +40,11 @@ USE_WEB_SEARCH = os.environ.get("USE_WEB_SEARCH", "true").lower() != "false"
 # makes sense for your domain.
 #
 # Swap this import to use a different data source:
-from data_sources.example_markets import fetch_data, PODCAST_NAME, PROMPT_TEMPLATE
+from data_sources.example_weather import fetch_data, PODCAST_NAME, PROMPT_TEMPLATE
 
 # Other examples (uncomment to use):
-# from data_sources.example_weather import fetch_data, PODCAST_NAME, PROMPT_TEMPLATE
-# from data_sources.your_source    import fetch_data, PODCAST_NAME, PROMPT_TEMPLATE
+# from data_sources.example_markets import fetch_data, PODCAST_NAME, PROMPT_TEMPLATE
+# from data_sources.your_source     import fetch_data, PODCAST_NAME, PROMPT_TEMPLATE
 
 
 # ── Step 1: Fetch data ──────────────────────────────────────────────────────────
@@ -65,14 +65,14 @@ def generate_episode(data: dict, ep_num: int, recent_str: str) -> dict:
     print(f"\n[2/5] Generating episode #{ep_num} (Claude Sonnet"
           + (" + web search" if USE_WEB_SEARCH else "") + ")...")
 
-    # PROMPT_TEMPLATE is defined by your data source.
-    # It receives today's date, episode number, recent topics, and the data dict.
-    prompt = PROMPT_TEMPLATE.format(
-        today=today,
-        today_iso=today_iso,
-        ep_num=ep_num,
-        recent_str=recent_str,
-        data=json.dumps(data, indent=2),
+    # Build prompt using simple replacement instead of .format() to avoid
+    # KeyErrors from JSON braces in the data payload.
+    prompt = (PROMPT_TEMPLATE
+        .replace("{today}",      today)
+        .replace("{today_iso}",  today_iso)
+        .replace("{ep_num}",     str(ep_num))
+        .replace("{recent_str}", recent_str)
+        .replace("{data}",       json.dumps(data, indent=2))
     )
 
     client   = Anthropic(api_key=ANTHROPIC_KEY)
